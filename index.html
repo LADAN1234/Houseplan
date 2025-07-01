@@ -42,12 +42,48 @@
             pointer-events: none;
             z-index: 10;
         }
+
+        #start-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(15, 56, 15, 0.9);
+            z-index: 20;
+            color: #9bbc0f;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+
+        #start-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #306230;
+            color: #9bbc0f;
+            border: 2px solid #9bbc0f;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+        }
+
+        #start-button:hover {
+            background-color: #8bac0f;
+            color: #0f380f;
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
         <canvas id="game-screen" width="160" height="144"></canvas>
         <div id="game-bezel"></div>
+        <div id="start-screen">
+            <h1>GB MARIO</h1>
+            <p>Press START to play</p>
+            <button id="start-button">START</button>
+            <p>Arrow keys to move<br>Space/Z to jump<br>R to restart</p>
+        </div>
     </div>
 
     <script>
@@ -73,7 +109,9 @@
             gameOver: false,
             levelComplete: false,
             invincible: 0,
-            starPower: 0
+            starPower: 0,
+            gameStarted: false,
+            audioContext: null
         };
 
         // Player
@@ -98,120 +136,6 @@
         const levels = [
             {
                 // Level 1 - Ground
-                width: 800,
-                groundHeight: 120,
-                blocks: [
-                    { x: 48, y: 88, type: 'brick' },
-                    { x: 64, y: 88, type: 'brick' },
-                    { x: 80, y: 88, type: 'brick' },
-                    { x: 96, y: 88, type: 'qblock', item: 'coin' },
-                    { x: 112, y: 88, type: 'qblock', item: 'mushroom' },
-                    { x: 160, y: 72, type: 'brick' },
-                    { x: 176, y: 72, type: 'brick' },
-                    { x: 192, y: 72, type: 'qblock', item: 'star' },
-                    { x: 240, y: 88, type: 'brick' },
-                    { x: 256, y: 88, type: 'brick' },
-                    { x: 272, y: 88, type: 'brick' },
-                    { x: 320, y: 64, type: 'brick' },
-                    { x: 336, y: 64, type: 'brick' },
-                    { x: 352, y: 64, type: 'brick' },
-                    { x: 400, y: 88, type: 'brick' },
-                    { x: 416, y: 88, type: 'brick' },
-                    { x: 432, y: 88, type: 'brick' },
-                    { x: 480, y: 72, type: 'brick' },
-                    { x: 496, y: 72, type: 'brick' },
-                    { x: 512, y: 72, type: 'qblock', item: '1up' },
-                    { x: 560, y: 88, type: 'brick' },
-                    { x: 576, y: 88, type: 'brick' },
-                    { x: 592, y: 88, type: 'brick' },
-                    { x: 640, y: 64, type: 'brick' },
-                    { x: 656, y: 64, type: 'brick' },
-                    { x: 672, y: 64, type: 'brick' },
-                    { x: 720, y: 88, type: 'brick' },
-                    { x: 736, y: 88, type: 'brick' },
-                    { x: 752, y: 88, type: 'brick' }
-                ],
-                coins: [
-                    { x: 50, y: 80 }, { x: 66, y: 80 }, { x: 82, y: 80 },
-                    { x: 162, y: 64 }, { x: 178, y: 64 },
-                    { x: 242, y: 80 }, { x: 258, y: 80 }, { x: 274, y: 80 },
-                    { x: 322, y: 56 }, { x: 338, y: 56 }, { x: 354, y: 56 },
-                    { x: 402, y: 80 }, { x: 418, y: 80 }, { x: 434, y: 80 },
-                    { x: 482, y: 64 }, { x: 498, y: 64 },
-                    { x: 562, y: 80 }, { x: 578, y: 80 }, { x: 594, y: 80 },
-                    { x: 642, y: 56 }, { x: 658, y: 56 }, { x: 674, y: 56 },
-                    { x: 722, y: 80 }, { x: 738, y: 80 }, { x: 754, y: 80 }
-                ],
-                enemies: [
-                    { x: 100, y: 104, type: 'goomba', direction: -1 },
-                    { x: 200, y: 104, type: 'goomba', direction: -1 },
-                    { x: 300, y: 104, type: 'koopa', direction: -1 },
-                    { x: 400, y: 104, type: 'goomba', direction: -1 },
-                    { x: 500, y: 104, type: 'koopa', direction: -1 },
-                    { x: 600, y: 104, type: 'goomba', direction: -1 },
-                    { x: 700, y: 104, type: 'koopa', direction: -1 }
-                ],
-                flagpole: { x: 780, y: 40 }
-            },
-            {
-                // Level 2 - Underground
-                width: 800,
-                groundHeight: 120,
-                blocks: [
-                    { x: 48, y: 88, type: 'brick' },
-                    { x: 64, y: 88, type: 'brick' },
-                    { x: 80, y: 88, type: 'brick' },
-                    { x: 96, y: 88, type: 'qblock', item: 'coin' },
-                    { x: 112, y: 88, type: 'qblock', item: 'mushroom' },
-                    { x: 160, y: 72, type: 'brick' },
-                    { x: 176, y: 72, type: 'brick' },
-                    { x: 192, y: 72, type: 'qblock', item: 'star' },
-                    { x: 240, y: 88, type: 'brick' },
-                    { x: 256, y: 88, type: 'brick' },
-                    { x: 272, y: 88, type: 'brick' },
-                    { x: 320, y: 64, type: 'brick' },
-                    { x: 336, y: 64, type: 'brick' },
-                    { x: 352, y: 64, type: 'brick' },
-                    { x: 400, y: 88, type: 'brick' },
-                    { x: 416, y: 88, type: 'brick' },
-                    { x: 432, y: 88, type: 'brick' },
-                    { x: 480, y: 72, type: 'brick' },
-                    { x: 496, y: 72, type: 'brick' },
-                    { x: 512, y: 72, type: 'qblock', item: '1up' },
-                    { x: 560, y: 88, type: 'brick' },
-                    { x: 576, y: 88, type: 'brick' },
-                    { x: 592, y: 88, type: 'brick' },
-                    { x: 640, y: 64, type: 'brick' },
-                    { x: 656, y: 64, type: 'brick' },
-                    { x: 672, y: 64, type: 'brick' },
-                    { x: 720, y: 88, type: 'brick' },
-                    { x: 736, y: 88, type: 'brick' },
-                    { x: 752, y: 88, type: 'brick' }
-                ],
-                coins: [
-                    { x: 50, y: 80 }, { x: 66, y: 80 }, { x: 82, y: 80 },
-                    { x: 162, y: 64 }, { x: 178, y: 64 },
-                    { x: 242, y: 80 }, { x: 258, y: 80 }, { x: 274, y: 80 },
-                    { x: 322, y: 56 }, { x: 338, y: 56 }, { x: 354, y: 56 },
-                    { x: 402, y: 80 }, { x: 418, y: 80 }, { x: 434, y: 80 },
-                    { x: 482, y: 64 }, { x: 498, y: 64 },
-                    { x: 562, y: 80 }, { x: 578, y: 80 }, { x: 594, y: 80 },
-                    { x: 642, y: 56 }, { x: 658, y: 56 }, { x: 674, y: 56 },
-                    { x: 722, y: 80 }, { x: 738, y: 80 }, { x: 754, y: 80 }
-                ],
-                enemies: [
-                    { x: 100, y: 104, type: 'goomba', direction: -1 },
-                    { x: 200, y: 104, type: 'goomba', direction: -1 },
-                    { x: 300, y: 104, type: 'koopa', direction: -1 },
-                    { x: 400, y: 104, type: 'goomba', direction: -1 },
-                    { x: 500, y: 104, type: 'koopa', direction: -1 },
-                    { x: 600, y: 104, type: 'goomba', direction: -1 },
-                    { x: 700, y: 104, type: 'koopa', direction: -1 }
-                ],
-                flagpole: { x: 780, y: 40 }
-            },
-            {
-                // Level 3 - Sky
                 width: 800,
                 groundHeight: 120,
                 blocks: [
@@ -291,6 +215,83 @@
             KeyZ: false
         };
 
+        // Initialize audio context
+        function initAudio() {
+            try {
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log("Audio initialized");
+            } catch (e) {
+                console.log("Web Audio API not supported");
+            }
+        }
+
+        // Play sound
+        function playSound(type) {
+            if (!state.audioContext) return;
+            
+            const sounds = {
+                jump: [
+                    { freq: 523.25, type: 'square', duration: 0.2 },
+                    { freq: 392, type: 'square', duration: 0.1 }
+                ],
+                coin: [
+                    { freq: 659.25, type: 'square', duration: 0.1 },
+                    { freq: 783.99, type: 'square', duration: 0.1 }
+                ],
+                powerup: [
+                    { freq: 523.25, type: 'square', duration: 0.05 },
+                    { freq: 659.25, type: 'square', duration: 0.05 },
+                    { freq: 783.99, type: 'square', duration: 0.05 },
+                    { freq: 1046.5, type: 'square', duration: 0.05 }
+                ],
+                stomp: [
+                    { freq: 220, type: 'square', duration: 0.1 }
+                ],
+                break: [
+                    { freq: 220, type: 'square', duration: 0.05 },
+                    { freq: 110, type: 'square', duration: 0.05 }
+                ],
+                die: [
+                    { freq: 220, type: 'square', duration: 0.1 },
+                    { freq: 165, type: 'square', duration: 0.1 },
+                    { freq: 110, type: 'square', duration: 0.1 }
+                ],
+                pipe: [
+                    { freq: 220, type: 'square', duration: 0.1 },
+                    { freq: 0, type: 'square', duration: 0.05 },
+                    { freq: 220, type: 'square', duration: 0.1 }
+                ],
+                '1up': [
+                    { freq: 659.25, type: 'square', duration: 0.1 },
+                    { freq: 523.25, type: 'square', duration: 0.1 },
+                    { freq: 659.25, type: 'square', duration: 0.1 },
+                    { freq: 783.99, type: 'square', duration: 0.1 },
+                    { freq: 1046.5, type: 'square', duration: 0.1 }
+                ]
+            };
+
+            if (!sounds[type]) return;
+
+            const now = state.audioContext.currentTime;
+            let time = now;
+
+            const gainNode = state.audioContext.createGain();
+            gainNode.gain.value = 0.2;
+            gainNode.connect(state.audioContext.destination);
+
+            sounds[type].forEach(note => {
+                if (note.freq > 0) {
+                    const oscillator = state.audioContext.createOscillator();
+                    oscillator.type = note.type;
+                    oscillator.frequency.value = note.freq;
+                    oscillator.connect(gainNode);
+                    oscillator.start(time);
+                    oscillator.stop(time + note.duration);
+                }
+                time += note.duration;
+            });
+        }
+
         // Game loop
         let lastTime = 0;
         function gameLoop(timestamp) {
@@ -305,7 +306,7 @@
 
         // Update game state
         function update(deltaTime) {
-            if (state.gameOver || state.levelComplete) return;
+            if (state.gameOver || state.levelComplete || !state.gameStarted) return;
 
             // Update player
             updatePlayer(deltaTime);
@@ -743,29 +744,16 @@
             ctx.fillStyle = PALETTE.mediumLight;
             ctx.fillRect(0, levels[state.currentLevel].groundHeight, canvas.width, canvas.height - levels[state.currentLevel].groundHeight);
 
-            // Clouds and hills (simple decoration)
-            if (state.currentLevel === 0 || state.currentLevel === 2) {
-                ctx.fillStyle = PALETTE.light;
-                // Clouds
-                for (let i = 0; i < 3; i++) {
-                    const cloudX = ((i * 80) - (camera.x * 0.5)) % (canvas.width + 80) - 40;
-                    if (cloudX > -40 && cloudX < canvas.width) {
-                        ctx.beginPath();
-                        ctx.arc(cloudX + 10, 30, 8, 0, Math.PI * 2);
-                        ctx.arc(cloudX + 20, 30, 10, 0, Math.PI * 2);
-                        ctx.arc(cloudX + 30, 30, 8, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-            }
-
-            // Underground ceiling
-            if (state.currentLevel === 1) {
-                ctx.fillStyle = PALETTE.dark;
-                for (let x = -16; x < canvas.width + 16; x += 16) {
-                    for (let y = 0; y < 32; y += 16) {
-                        ctx.fillRect(x - (camera.x % 16), y, 16, 16);
-                    }
+            // Clouds (simple decoration)
+            ctx.fillStyle = PALETTE.light;
+            for (let i = 0; i < 3; i++) {
+                const cloudX = ((i * 80) - (camera.x * 0.5)) % (canvas.width + 80) - 40;
+                if (cloudX > -40 && cloudX < canvas.width) {
+                    ctx.beginPath();
+                    ctx.arc(cloudX + 10, 30, 8, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 20, 30, 10, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 30, 30, 8, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         }
@@ -1038,75 +1026,6 @@
             ctx.textAlign = 'left';
         }
 
-        // Sound effects
-        const sounds = {
-            jump: [
-                { freq: 523.25, type: 'square', start: 0, end: 0.1 },
-                { freq: 392, type: 'square', start: 0.1, end: 0.2 }
-            ],
-            coin: [
-                { freq: 659.25, type: 'square', start: 0, end: 0.1 },
-                { freq: 783.99, type: 'square', start: 0.1, end: 0.2 }
-            ],
-            powerup: [
-                { freq: 523.25, type: 'square', start: 0, end: 0.05 },
-                { freq: 659.25, type: 'square', start: 0.05, end: 0.1 },
-                { freq: 783.99, type: 'square', start: 0.1, end: 0.15 },
-                { freq: 1046.5, type: 'square', start: 0.15, end: 0.2 }
-            ],
-            stomp: [
-                { freq: 220, type: 'square', start: 0, end: 0.1 }
-            ],
-            break: [
-                { freq: 220, type: 'square', start: 0, end: 0.05 },
-                { freq: 110, type: 'square', start: 0.05, end: 0.1 }
-            ],
-            die: [
-                { freq: 220, type: 'square', start: 0, end: 0.1 },
-                { freq: 165, type: 'square', start: 0.1, end: 0.2 },
-                { freq: 110, type: 'square', start: 0.2, end: 0.3 }
-            ],
-            pipe: [
-                { freq: 220, type: 'square', start: 0, end: 0.1 },
-                { freq: 0, type: 'square', start: 0.1, end: 0.15 },
-                { freq: 220, type: 'square', start: 0.15, end: 0.25 }
-            ],
-            '1up': [
-                { freq: 659.25, type: 'square', start: 0, end: 0.1 },
-                { freq: 523.25, type: 'square', start: 0.1, end: 0.2 },
-                { freq: 659.25, type: 'square', start: 0.2, end: 0.3 },
-                { freq: 783.99, type: 'square', start: 0.3, end: 0.4 },
-                { freq: 1046.5, type: 'square', start: 0.4, end: 0.5 }
-            ]
-        };
-
-        // Play sound
-        function playSound(type) {
-            if (!sounds[type]) return;
-            
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const gainNode = audioCtx.createGain();
-                gainNode.gain.value = 0.2;
-                gainNode.connect(audioCtx.destination);
-                
-                const now = audioCtx.currentTime;
-                
-                sounds[type].forEach(note => {
-                    if (note.freq > 0) {
-                        const oscillator = audioCtx.createOscillator();
-                        oscillator.type = note.type;
-                        oscillator.frequency.value = note.freq;
-                        oscillator.connect(gainNode);
-                        oscillator.start(now + note.start);
-                        oscillator.stop(now + note.end);
-                    }
-                });
-            } catch (e) {
-                console.log('Audio error:', e);
-            }
-        }
-
         // Input handling
         window.addEventListener('keydown', (e) => {
             if (e.code in keys) {
@@ -1128,15 +1047,8 @@
         });
 
         // Touch controls for mobile
-        let touchStartX = 0;
-        let touchStartY = 0;
-
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            
-            // Simple touch controls - left half for move, right half for jump
             const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
             if (touchX < canvas.width / 2) {
                 keys.ArrowLeft = true;
@@ -1146,10 +1058,6 @@
             }
         });
 
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-        });
-
         canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
             keys.ArrowLeft = false;
@@ -1157,9 +1065,22 @@
             keys.ArrowUp = false;
         });
 
-        // Start game
-        restartGame();
-        requestAnimationFrame(gameLoop);
+        // Start button
+        document.getElementById('start-button').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            state.gameStarted = true;
+            initAudio();
+            playSound('powerup');
+        });
+
+        // Initialize game
+        function initGame() {
+            restartGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        initGame();
     </script>
 </body>
-  </html>
+    </html>

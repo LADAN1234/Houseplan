@@ -32,6 +32,7 @@
             transform: translate(-50%, -50%);
             image-rendering: pixelated;
             background-color: #8bac0f;
+            border: 2px solid #0f380f;
         }
         
         #game-bezel {
@@ -89,10 +90,10 @@
     <script>
         // Game Boy Color palette
         const PALETTE = {
-            dark: '#0f380f',
-            mediumDark: '#306230',
-            mediumLight: '#8bac0f',
-            light: '#9bbc0f'
+            dark: '#0f380f',      // Darkest green
+            mediumDark: '#306230', // Dark green
+            mediumLight: '#8bac0f', // Light green
+            light: '#9bbc0f'       // Lightest green
         };
 
         // Game canvas setup
@@ -111,7 +112,8 @@
             invincible: 0,
             starPower: 0,
             gameStarted: false,
-            audioContext: null
+            audioContext: null,
+            startTime: Date.now()
         };
 
         // Player
@@ -122,12 +124,12 @@
             height: 16,
             velX: 0,
             velY: 0,
-            speed: 1,
-            jumpForce: 4,
+            speed: 1.5,
+            jumpForce: 4.5,
             canDoubleJump: false,
             isJumping: false,
             direction: 1, // 1 = right, -1 = left
-            powerUp: 'small', // small, big, fire
+            powerUp: 'small', // small, big
             frame: 0,
             animationTimer: 0
         };
@@ -139,32 +141,44 @@
                 width: 800,
                 groundHeight: 120,
                 blocks: [
+                    // Ground platform
+                    { x: 0, y: 120, width: 800, height: 24, type: 'ground' },
+                    
+                    // Raised platforms
                     { x: 48, y: 88, type: 'brick' },
                     { x: 64, y: 88, type: 'brick' },
                     { x: 80, y: 88, type: 'brick' },
                     { x: 96, y: 88, type: 'qblock', item: 'coin' },
                     { x: 112, y: 88, type: 'qblock', item: 'mushroom' },
+                    
                     { x: 160, y: 72, type: 'brick' },
                     { x: 176, y: 72, type: 'brick' },
                     { x: 192, y: 72, type: 'qblock', item: 'star' },
+                    
                     { x: 240, y: 88, type: 'brick' },
                     { x: 256, y: 88, type: 'brick' },
                     { x: 272, y: 88, type: 'brick' },
+                    
                     { x: 320, y: 64, type: 'brick' },
                     { x: 336, y: 64, type: 'brick' },
                     { x: 352, y: 64, type: 'brick' },
+                    
                     { x: 400, y: 88, type: 'brick' },
                     { x: 416, y: 88, type: 'brick' },
                     { x: 432, y: 88, type: 'brick' },
+                    
                     { x: 480, y: 72, type: 'brick' },
                     { x: 496, y: 72, type: 'brick' },
                     { x: 512, y: 72, type: 'qblock', item: '1up' },
+                    
                     { x: 560, y: 88, type: 'brick' },
                     { x: 576, y: 88, type: 'brick' },
                     { x: 592, y: 88, type: 'brick' },
+                    
                     { x: 640, y: 64, type: 'brick' },
                     { x: 656, y: 64, type: 'brick' },
                     { x: 672, y: 64, type: 'brick' },
+                    
                     { x: 720, y: 88, type: 'brick' },
                     { x: 736, y: 88, type: 'brick' },
                     { x: 752, y: 88, type: 'brick' }
@@ -181,15 +195,15 @@
                     { x: 722, y: 80 }, { x: 738, y: 80 }, { x: 754, y: 80 }
                 ],
                 enemies: [
-                    { x: 100, y: 104, type: 'goomba', direction: -1 },
-                    { x: 200, y: 104, type: 'goomba', direction: -1 },
-                    { x: 300, y: 104, type: 'koopa', direction: -1 },
-                    { x: 400, y: 104, type: 'goomba', direction: -1 },
-                    { x: 500, y: 104, type: 'koopa', direction: -1 },
-                    { x: 600, y: 104, type: 'goomba', direction: -1 },
-                    { x: 700, y: 104, type: 'koopa', direction: -1 }
+                    { x: 100, y: 104, type: 'goomba', direction: -1, width: 16, height: 16 },
+                    { x: 200, y: 104, type: 'goomba', direction: -1, width: 16, height: 16 },
+                    { x: 300, y: 104, type: 'koopa', direction: -1, width: 16, height: 16 },
+                    { x: 400, y: 104, type: 'goomba', direction: -1, width: 16, height: 16 },
+                    { x: 500, y: 104, type: 'koopa', direction: -1, width: 16, height: 16 },
+                    { x: 600, y: 104, type: 'goomba', direction: -1, width: 16, height: 16 },
+                    { x: 700, y: 104, type: 'koopa', direction: -1, width: 16, height: 16 }
                 ],
-                flagpole: { x: 780, y: 40 }
+                flagpole: { x: 780, y: 40, width: 8, height: 80 }
             }
         ];
 
@@ -420,7 +434,7 @@
                 enemy.x += enemy.direction * 0.5;
 
                 // Turn around at edges
-                if (enemy.x < 0 || enemy.x > levels[state.currentLevel].width - 8) {
+                if (enemy.x < 0 || enemy.x > levels[state.currentLevel].width - enemy.width) {
                     enemy.direction *= -1;
                 }
 
@@ -428,8 +442,8 @@
                 enemy.y += 0.2;
 
                 // Ground collision
-                if (enemy.y >= levels[state.currentLevel].groundHeight - 8) {
-                    enemy.y = levels[state.currentLevel].groundHeight - 8;
+                if (enemy.y >= levels[state.currentLevel].groundHeight - enemy.height) {
+                    enemy.y = levels[state.currentLevel].groundHeight - enemy.height;
                 }
             }
         }
@@ -448,8 +462,8 @@
                     item.velY += 0.1;
 
                     // Bounce off blocks
-                    if (item.y >= levels[state.currentLevel].groundHeight - 8) {
-                        item.y = levels[state.currentLevel].groundHeight - 8;
+                    if (item.y >= levels[state.currentLevel].groundHeight - item.height) {
+                        item.y = levels[state.currentLevel].groundHeight - item.height;
                         item.velY = 0;
                     }
                 } else if (item.type === 'star') {
@@ -457,7 +471,7 @@
                     item.y += item.velY;
 
                     // Bounce around
-                    if (item.y <= 0 || item.y >= levels[state.currentLevel].groundHeight - 8) {
+                    if (item.y <= 0 || item.y >= levels[state.currentLevel].groundHeight - item.height) {
                         item.velY *= -1;
                     }
                 }
@@ -528,7 +542,7 @@
             // Player with coins
             for (let i = levels[state.currentLevel].coins.length - 1; i >= 0; i--) {
                 const coin = levels[state.currentLevel].coins[i];
-                if (checkCollision(player, coin)) {
+                if (checkCollision(player, {x: coin.x, y: coin.y, width: 8, height: 8})) {
                     levels[state.currentLevel].coins.splice(i, 1);
                     state.coins++;
                     state.score += 200;
@@ -602,9 +616,9 @@
 
         // Check collision between two objects
         function checkCollision(a, b) {
-            return a.x < b.x + 16 &&
+            return a.x < b.x + (b.width || 16) &&
                    a.x + a.width > b.x &&
-                   a.y < b.y + 16 &&
+                   a.y < b.y + (b.height || 16) &&
                    a.y + a.height > b.y;
         }
 
@@ -690,6 +704,7 @@
             // Reset level blocks
             for (const level of levels) {
                 for (const block of level.blocks) {
+                    if (block.type === 'ground') continue;
                     block.hit = false;
                 }
                 for (const enemy of level.enemies) {
@@ -705,7 +720,7 @@
         // Render game
         function render() {
             // Clear canvas
-            ctx.fillStyle = PALETTE.dark;
+            ctx.fillStyle = PALETTE.mediumDark;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw background
@@ -760,6 +775,11 @@
 
         // Draw level elements
         function drawLevel() {
+            // Ground platform
+            ctx.fillStyle = PALETTE.mediumLight;
+            ctx.fillRect(0 - camera.x, levels[state.currentLevel].groundHeight - camera.y, 
+                         levels[state.currentLevel].width, 24);
+
             // Blocks
             for (const block of levels[state.currentLevel].blocks) {
                 if (block.hit && block.type === 'brick') continue;
@@ -989,7 +1009,8 @@
             ctx.fillText(`WORLD ${state.currentLevel + 1}-1`, 80, 4);
             
             // Time (simplified)
-            ctx.fillText(`TIME ${Math.floor(300 - (Date.now() / 1000) % 300)}`, 80, 12);
+            const elapsedSeconds = Math.floor((Date.now() - state.startTime) / 1000);
+            ctx.fillText(`TIME ${Math.max(0, 300 - elapsedSeconds)}`, 80, 12);
         }
 
         // Draw game over screen
@@ -1069,6 +1090,7 @@
         document.getElementById('start-button').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
             state.gameStarted = true;
+            state.startTime = Date.now();
             initAudio();
             playSound('powerup');
         });
